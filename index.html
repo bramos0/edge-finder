@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Finder</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#15181d; --muted:#626b78; --line:#e2e5ea;
+  --accent:#1f6feb; --accent-ink:#ffffff; --good:#12805c; --good-bg:#e3f5ec;
+  --bad:#c0392b; --bad-bg:#fbe7e5; --warn:#9a6700; --warn-bg:#fff4d6; --chip:#eef1f5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1216; --panel:#171b21; --ink:#e7eaee; --muted:#9aa3ae; --line:#2a3039;
+    --accent:#4c8dff; --accent-ink:#0b0d10; --good:#4cc38a; --good-bg:#12291f;
+    --bad:#ff7b6b; --bad-bg:#331714; --warn:#e3b341; --warn-bg:#2e2410; --chip:#222831;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1216; --panel:#171b21; --ink:#e7eaee; --muted:#9aa3ae; --line:#2a3039;
+  --accent:#4c8dff; --accent-ink:#0b0d10; --good:#4cc38a; --good-bg:#12291f;
+  --bad:#ff7b6b; --bad-bg:#331714; --warn:#e3b341; --warn-bg:#2e2410; --chip:#222831;
+}
+*{box-sizing:border-box}
+a{color:var(--accent)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0;letter-spacing:-.01em}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;padding:7px 12px;border-radius:8px;color:var(--muted);font:inherit;cursor:pointer}
+nav button.on{background:var(--chip);color:var(--ink);font-weight:600}
+.quota{margin-left:auto;color:var(--muted);font-size:12px}
+main{max-width:1200px;margin:0 auto;padding:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 4px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+label.inl{display:flex;align-items:center;gap:6px;font-size:13px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+input[type=checkbox]{padding:0}
+button.b{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.b:hover{border-color:var(--muted)}
+button.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.s{padding:3px 8px;font-size:12px}
+button:disabled{opacity:.5;cursor:default}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:500;font-size:12px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.val td{background:color-mix(in srgb, var(--good-bg) 55%, transparent)}
+.game{white-space:normal;min-width:170px}
+.small{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--chip)}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.pill.good{background:var(--good-bg)} .pill.bad{background:var(--bad-bg)} .pill.warn{background:var(--warn-bg);color:var(--warn)}
+.msg{padding:10px 12px;border-radius:8px;background:var(--chip);margin:10px 0 0;font-size:13px}
+.msg.err{background:var(--bad-bg);color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.books{display:flex;flex-wrap:wrap;gap:6px 14px}
+.books label{display:flex;gap:6px;align-items:center}
+/* game cards */
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.gcard.open{border-color:var(--muted)}
+.ghead{width:100%;display:flex;align-items:center;gap:12px;padding:12px 16px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;flex-wrap:wrap}
+.ghead .teams{font-weight:600;font-size:15px}
+.ghead .meta{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.ghead .chev{color:var(--muted);transition:transform .15s}
+.gcard.open .chev{transform:rotate(180deg)}
+.gbody{padding:0 16px 16px;border-top:1px solid var(--line)}
+.subtabs{display:flex;gap:4px;margin:12px 0}
+.subtabs button{background:none;border:1px solid var(--line);padding:6px 12px;border-radius:8px;color:var(--muted);font:inherit;cursor:pointer}
+.subtabs button.on{background:var(--chip);color:var(--ink);border-color:var(--chip);font-weight:600}
+.propctl{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.player{font-weight:600}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:18px;width:min(560px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+dialog .grid .full{grid-column:1/-1}
+.hidden{display:none !important}
+details summary{cursor:pointer;color:var(--muted)}
+@media (max-width:600px){dialog .grid{grid-template-columns:1fr}.ghead .meta{margin-left:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Edge Finder</h1>
+  <nav id="tabs">
+    <button data-t="games" class="on">Games</button>
+    <button data-t="tailers">Tailers</button>
+    <button data-t="log">My bets</button>
+    <button data-t="paper">Paper account</button>
+    <button data-t="settings">Settings</button>
+  </nav>
+  <div class="quota" id="quota"></div>
+</header>
+
+<main>
+<!-- GAMES -->
+<section id="t-games">
+  <div class="card">
+    <h2>Games</h2>
+    <p class="sub">Each game has its own tab with <b>Game lines</b> and <b>Player props</b>. Edge compares your price to a "fair" line with the bookmaker's cut removed (Pinnacle when available, otherwise the median of all books).</p>
+    <div class="row">
+      <label class="f">Sport<select id="sport"></select></label>
+      <label class="f">Price from<select id="priceFrom">
+        <option value="target">My main book only</option>
+        <option value="best">Best of my books</option>
+      </select></label>
+      <label class="f">Min edge %<input id="minEdge" type="number" step="0.5" style="width:80px"></label>
+      <label class="f">Search team<input id="teamSearch" placeholder="e.g. Chiefs" style="width:150px"></label>
+      <div style="margin-top:16px" class="row">
+        <button class="b p" id="refresh">Refresh game lines</button>
+        <button class="b" id="demo" title="Fake data so you can see how it works">Load demo data</button>
+      </div>
+    </div>
+    <div id="gamesMsg"></div>
+  </div>
+  <div class="card" id="topCard">
+    <h2>Best bets right now</h2>
+    <p class="sub">Top edges across every game line and loaded prop for this sport. Click one to jump to its game.</p>
+    <div class="tw" id="topBets"></div>
+  </div>
+  <div id="gameList"></div>
+</section>
+
+<!-- TAILERS -->
+<section id="t-tailers" class="hidden">
+  <div class="card">
+    <h2>Tailers leaderboard</h2>
+    <p class="sub">Only picks you logged <em>before</em> the game count, so records can't be cherry-picked. Closing line value (CLV) — whether their price beat the final market line — shows skill long before win/loss does.</p>
+    <div class="row">
+      <input id="newTailer" placeholder="Add a handicapper (e.g. @sharpguy)">
+      <button class="b" id="addTailer">Add</button>
+      <button class="b p" id="logTailPick">Log a pick</button>
+      <button class="b" id="checkLines">Check current lines</button>
+      <button class="b" id="grade">Grade finished games</button>
+    </div>
+    <div id="tailMsg"></div>
+  </div>
+  <div class="card"><div class="tw" id="board"></div></div>
+  <div class="card">
+    <h2>Open picks — still worth tailing?</h2>
+    <p class="sub">"Edge now" uses the latest price at your books against the fair line. If the line has moved past value, skip it.</p>
+    <div class="tw" id="openPicks"></div>
+  </div>
+  <div class="card">
+    <details><summary>Graded picks history</summary><div class="tw" id="gradedPicks" style="margin-top:10px"></div></details>
+  </div>
+</section>
+
+<!-- MY BETS -->
+<section id="t-log" class="hidden">
+  <div class="card">
+    <h2>My bets</h2>
+    <p class="sub">Bets you logged yourself plus tailer picks marked "I tailed". Stakes are in units (1u = your unit size in Settings). Player props are graded with the W / L / P buttons.</p>
+    <div class="stats" id="myStats"></div>
+    <div class="row"><button class="b p" id="logMyBet">Log a bet</button></div>
+  </div>
+  <div class="card"><div class="tw" id="myTable"></div></div>
+</section>
+
+<!-- PAPER -->
+<section id="t-paper" class="hidden">
+  <div class="card">
+    <h2>Paper account</h2>
+    <p class="sub">Practice with fake money. Nothing here touches a real sportsbook.</p>
+    <div class="stats" id="paperStats"></div>
+    <div id="paperWeek"></div>
+    <div id="paperChart"></div>
+    <div class="row" style="margin-top:12px">
+      <label class="f">Starting balance ($)<input id="paperStart" type="number" style="width:110px"></label>
+      <button class="b" id="paperReset" style="margin-top:16px">Reset paper account</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Autopilot</h2>
+    <p class="sub">Places paper bets automatically on value lines using the rules below (at most one bet per game, the biggest edge), and grades them when games finish. It runs only while this page is open in your browser and your computer is awake.</p>
+    <div class="row">
+      <label class="inl"><input type="checkbox" id="apOn"> <b>Autopilot on</b></label>
+      <button class="b p" id="apRun">Run now</button>
+      <span class="small" id="apNext"></span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label class="f">Check every (hours)<input id="apEvery" type="number" min="1" step="1" style="width:90px"></label>
+      <label class="f">Min edge %<input id="apMin" type="number" step="0.5" style="width:80px"></label>
+      <label class="f">Skip edges above %<input id="apMax" type="number" step="0.5" style="width:80px"></label>
+      <label class="f">Games starting within (hours)<input id="apAhead" type="number" style="width:90px"></label>
+      <label class="f">Max risk per day (% of balance)<input id="apDaily" type="number" style="width:90px"></label>
+    </div>
+    <p class="sub" style="margin:12px 0 6px">Sports to watch:</p>
+    <div class="books" id="apSports"></div>
+    <label class="inl" style="margin-top:10px"><input type="checkbox" id="apSharp"> Only bet when Pinnacle has the line (stricter, fewer bets)</label>
+    <p class="small" id="apCost"></p>
+    <details><summary>Autopilot activity</summary><div id="apLog" style="margin-top:8px"></div></details>
+  </div>
+  <div class="card"><h2>Paper bets</h2><div class="tw" id="paperTable"></div></div>
+</section>
+
+<!-- SETTINGS -->
+<section id="t-settings" class="hidden">
+  <div class="card">
+    <h2>The Odds API key</h2>
+    <p class="sub">Free key at <a href="https://the-odds-api.com" target="_blank" rel="noopener">the-odds-api.com</a>. It's stored only in this browser on this computer.</p>
+    <div class="row"><input id="apiKey" type="password" placeholder="Paste your API key" style="width:min(320px,100%)"><button class="b" id="saveKey">Save key</button></div>
+  </div>
+  <div class="card">
+    <h2>Bankroll & sizing</h2>
+    <div class="row">
+      <label class="f">Bankroll ($)<input id="bankroll" type="number" style="width:110px"></label>
+      <label class="f">Unit size ($)<input id="unit" type="number" style="width:90px"></label>
+      <label class="f">Kelly fraction<input id="kelly" type="number" step="0.05" style="width:90px"></label>
+      <label class="f">Max bet (% of bankroll)<input id="maxPct" type="number" step="0.5" style="width:90px"></label>
+    </div>
+    <p class="small">Suggested stake = fraction × Kelly, capped at max bet. 0.25 (quarter Kelly) is a common, conservative choice.</p>
+  </div>
+  <div class="card">
+    <h2>Sportsbooks</h2>
+    <div class="row" style="margin-bottom:10px">
+      <label class="f">Main book<select id="target"></select></label>
+    </div>
+    <p class="sub">Books you have accounts with (used for "best of my books"):</p>
+    <div class="books" id="myBooks"></div>
+  </div>
+  <div class="card">
+    <h2>API credit usage</h2>
+    <div class="row" style="margin-bottom:8px">
+      <label class="f">Game-line markets<span class="books">
+        <label><input type="checkbox" data-m="h2h"> Moneyline</label>
+        <label><input type="checkbox" data-m="spreads"> Spread</label>
+        <label><input type="checkbox" data-m="totals"> Total</label>
+      </span></label>
+    </div>
+    <label class="inl"><input type="checkbox" id="propSharp"> Include Pinnacle when loading props (more accurate fair lines, 2× credits)</label>
+    <p class="small">Game lines cost (markets × 2) credits per refresh for the whole sport. Props cost (prop types × regions) credits <em>per game</em>. Free tier = 500 credits/month.</p>
+  </div>
+  <div class="card">
+    <h2>Backup</h2>
+    <p class="sub">Everything lives in this browser. Export regularly so you don't lose your tailer records.</p>
+    <div class="row"><button class="b" id="export">Export data</button><label class="b" style="cursor:pointer">Import data<input type="file" id="import" accept=".json" class="hidden"></label></div>
+  </div>
+</section>
+</main>
+
+<!-- LOG PICK DIALOG -->
+<dialog id="dlg">
+  <form method="dialog" id="pickForm">
+    <h2 style="margin:0 0 12px;font-size:16px" id="dlgTitle">Log a pick</h2>
+    <div class="grid">
+      <label class="f full">Who<select id="pWho"></select></label>
+      <label class="f full">Game (from loaded odds — links it for tracking)<select id="pEvent"></select></label>
+      <label class="f full linkOff">Game description<input id="pDesc" placeholder="e.g. Chiefs vs Bills"></label>
+      <label class="f">Market<select id="pMarket"></select></label>
+      <label class="f linkOn">Selection<select id="pOutcome"></select></label>
+      <label class="f linkOff">Selection<input id="pPick" placeholder="e.g. Mahomes over 274.5 pass yds"></label>
+      <label class="f">Odds (American)<input id="pOdds" type="number" placeholder="-110"></label>
+      <label class="f">Units<input id="pUnits" type="number" step="0.25" value="1"></label>
+      <label class="f">Book<select id="pBook"></select></label>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px" id="pTailedWrap"><input type="checkbox" id="pTailed"> I tailed this bet</label>
+    </div>
+    <div class="row" style="margin-top:16px;justify-content:flex-end">
+      <button class="b" value="cancel" formnovalidate>Cancel</button>
+      <button class="b p" id="pSave" value="ok">Save pick</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/* ---------- constants ---------- */
+const API = 'https://api.the-odds-api.com/v4';
+const SPORTS = [
+  ['americanfootball_nfl','NFL'],['americanfootball_ncaaf','College football'],
+  ['basketball_nba','NBA'],['basketball_ncaab','College basketball'],['basketball_wnba','WNBA'],
+  ['baseball_mlb','MLB'],['icehockey_nhl','NHL'],['mma_mixed_martial_arts','MMA'],
+  ['soccer_epl','EPL'],['soccer_usa_mls','MLS'],['soccer_uefa_champs_league','Champions League']
+];
+const FB = [['player_pass_yds','Pass yds'],['player_pass_tds','Pass TDs'],['player_rush_yds','Rush yds'],['player_receptions','Receptions'],['player_reception_yds','Rec yds'],['player_anytime_td','Anytime TD']];
+const BB = [['player_points','Points'],['player_rebounds','Rebounds'],['player_assists','Assists'],['player_threes','3-pointers'],['player_points_rebounds_assists','Pts+Reb+Ast']];
+const SOC = [['player_goal_scorer_anytime','Anytime goal'],['player_shots_on_target','Shots on target']];
+const PROPS = {
+  americanfootball_nfl:FB, americanfootball_ncaaf:FB,
+  basketball_nba:BB, basketball_ncaab:BB, basketball_wnba:BB,
+  baseball_mlb:[['pitcher_strikeouts','Pitcher Ks'],['batter_hits','Hits'],['batter_total_bases','Total bases'],['batter_home_runs','Home runs'],['batter_rbis','RBIs']],
+  icehockey_nhl:[['player_points','Points'],['player_shots_on_goal','Shots on goal'],['player_assists','Assists'],['player_goal_scorer_anytime','Anytime goal']],
+  soccer_epl:SOC, soccer_usa_mls:SOC, soccer_uefa_champs_league:SOC, mma_mixed_martial_arts:[]
+};
+const BOOKS = {
+  draftkings:'DraftKings', fanduel:'FanDuel', betmgm:'BetMGM', williamhill_us:'Caesars',
+  espnbet:'ESPN BET', fanatics:'Fanatics', betrivers:'BetRivers', hardrockbet:'Hard Rock',
+  ballybet:'Bally Bet', betonlineag:'BetOnline', bovada:'Bovada', pinnacle:'Pinnacle'
+};
+const SHARP = 'pinnacle';
+const GAME_MKTS = {h2h:'Moneyline', spreads:'Spread', totals:'Total'};
+const isProp = m => !(m in GAME_MKTS) && m !== 'other';
+const mktLabel = m => GAME_MKTS[m] || Object.values(PROPS).flat().find(x => x[0] === m)?.[1] || (m === 'other' ? 'Other' : m);
+
+/* ---------- storage ---------- */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('ef_'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('ef_'+k, JSON.stringify(v)); }catch(e){} }
+};
+const S = {
+  settings: Object.assign({
+    apiKey:'', bankroll:1000, unit:10, kelly:0.25, maxPct:3, target:'draftkings',
+    myBooks:['draftkings','fanduel','betmgm','williamhill_us','espnbet','fanatics','betrivers','hardrockbet'],
+    markets:['h2h','spreads','totals'], sport:'americanfootball_nfl', priceFrom:'target', minEdge:2,
+    propSharp:false, propMarkets:{}
+  }, store.get('settings', {})),
+  tailers: store.get('tailers', []),
+  picks: store.get('picks', []),
+  cache: store.get('cache', {}),   // sportKey -> {ts, events, demo}
+  props: store.get('props', {}),   // eventId  -> {ts, bookmakers, markets, demo}
+  quota: store.get('quota', null),
+  paper: store.get('paper', null) || {start:300, startedAt:Date.now(), bets:[]},
+  ap: Object.assign({on:false, every:3, min:3, max:8, ahead:24, daily:15, sports:['americanfootball_nfl'], sharp:false, lastRun:0, log:[]}, store.get('ap', {}))
+};
+const save = () => { for (const k of ['settings','tailers','picks','cache','props','quota','paper','ap']) store.set(k, S[k]); };
+// drop prop data for games that started over a day ago
+for (const id in S.props) if (Date.now() - new Date(S.props[id].commence || 0) > 864e5) delete S.props[id];
+
+const UI = { open: new Set(), sub: {}, propSearch: {}, propAll: {}, linesAll: {} };
+
+/* ---------- odds math ---------- */
+const amToDec = a => a > 0 ? 1 + a/100 : 1 + 100/(-a);
+const decToAm = d => d >= 2 ? Math.round((d-1)*100) : Math.round(-100/(d-1));
+const fmtAm = a => a == null || isNaN(a) ? '—' : (a > 0 ? '+'+a : String(a));
+const fmtDec = d => d ? fmtAm(decToAm(d)) : '—';
+const pct = (x, dp=1) => x == null || isNaN(x) ? '—' : (x*100).toFixed(dp)+'%';
+const signPct = x => x == null || isNaN(x) ? '—' : (x>=0?'+':'')+(x*100).toFixed(1)+'%';
+const money = x => (x<0?'-$':'$')+Math.abs(x).toFixed(2);
+const units = x => (x>=0?'+':'')+x.toFixed(2)+'u';
+const median = a => { const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bookName = k => BOOKS[k] || k;
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+
+function kellyStake(p, dec, bank = S.settings.bankroll){
+  const b = dec - 1, f = (b*p - (1-p)) / b;
+  if (!(f > 0)) return 0;
+  const st = S.settings;
+  return Math.min(f * st.kelly * bank, bank * st.maxPct/100);
+}
+
+/* ---------- analysis ---------- */
+const outKey = (name, desc, point) => `${name}|${desc ?? ''}|${point ?? ''}`;
+const fmtPt = p => p > 0 ? '+'+p : String(p);
+function outLabel(mkey, name, point, desc){
+  if (mkey === 'h2h') return name;
+  if (mkey === 'totals') return `${name} ${point}`;
+  if (mkey === 'spreads') return `${name} ${fmtPt(point)}`;
+  if (isProp(mkey)) return `${desc ? desc+' ' : ''}${name}${point != null ? ' '+point : ''} ${mktLabel(mkey)}`;
+  return name;
+}
+
+// Groups every book's prices by market + line (for props: per player + line), then works out fair probabilities.
+function analyze(ev, bookmakers){
+  const groups = {};
+  const add = (mkey, line, bk, o) => {
+    const g = ((groups[mkey] ||= {})[line] ||= {books:{}, outcomes:{}});
+    const k = outKey(o.name, o.description, o.point);
+    g.outcomes[k] = {name:o.name, point:o.point, desc:o.description};
+    (g.books[bk] ||= {})[k] = o.price;
+  };
+  for (const bk of bookmakers || []) for (const m of bk.markets || []) {
+    const outs = m.outcomes || [];
+    if (m.key === 'h2h') outs.forEach(o => add('h2h', 'ml', bk.key, o));
+    else if (m.key === 'totals') outs.forEach(o => add('totals', String(o.point), bk.key, o));
+    else if (m.key === 'spreads') {
+      const h = outs.find(o => o.name === ev.home_team); if (!h) continue;
+      outs.forEach(o => add('spreads', String(h.point), bk.key, o));
+    }
+    else outs.forEach(o => add(m.key, `${o.description ?? ''}|${o.point ?? ''}`, bk.key, o));
+  }
+  for (const mkey in groups) for (const line in groups[mkey]) {
+    const g = groups[mkey][line], keys = Object.keys(g.outcomes);
+    g.fair = null;
+    if (keys.length < 2) continue;              // one-sided markets (e.g. "Yes" only) can't be de-vigged
+    const devig = prices => {
+      if (!prices || !keys.every(k => prices[k])) return null;
+      const inv = keys.map(k => 1/prices[k]), sum = inv.reduce((a,b)=>a+b,0);
+      return Object.fromEntries(keys.map((k,i) => [k, inv[i]/sum]));
+    };
+    let fair = devig(g.books[SHARP]), src = 'Pinnacle';
+    if (!fair) {
+      const all = Object.values(g.books).map(devig).filter(Boolean);
+      if (all.length >= 3) {
+        const med = keys.map(k => median(all.map(f => f[k]))), sum = med.reduce((a,b)=>a+b,0);
+        fair = Object.fromEntries(keys.map((k,i) => [k, med[i]/sum]));
+        src = `Market (${all.length} books)`;
+      }
+    }
+    g.fair = fair; g.fairSrc = src;
+  }
+  return groups;
+}
+
+// Turn groups into rows: one per outcome, with prices at your books and the edge.
+function rowsFrom(ev, groups, kind){
+  const rows = [], st = S.settings;
+  for (const mkey in groups) for (const line in groups[mkey]) {
+    const g = groups[mkey][line];
+    for (const k in g.outcomes) {
+      const o = g.outcomes[k], p = g.fair?.[k] ?? null;
+      const tgt = g.books[st.target]?.[k];
+      let best = null;
+      for (const b of st.myBooks) { const d = g.books[b]?.[k]; if (d && (!best || d > best.dec)) best = {book:b, dec:d}; }
+      if (!tgt && !best) continue;
+      const use = st.priceFrom === 'best' ? best : (tgt ? {book:st.target, dec:tgt} : null);
+      rows.push({id:`${ev.id}~${mkey}~${k}`, kind, ev, mkey, o, p, src:g.fairSrc, tgt, best, use,
+        edge: p && use ? p*use.dec - 1 : null});
+    }
+  }
+  return rows;
+}
+const ROWS = {};  // id -> row, for Log buttons
+function gameRows(ev){ const r = rowsFrom(ev, analyze(ev, ev.bookmakers), 'line'); r.forEach(x => ROWS[x.id] = x); return r; }
+function propRows(ev){ const pr = S.props[ev.id]; if (!pr) return null; const r = rowsFrom(ev, analyze(ev, pr.bookmakers), 'prop'); r.forEach(x => ROWS[x.id] = x); return r; }
+const isValue = r => r.edge != null && r.edge*100 >= S.settings.minEdge;
+
+// Current price / fair value for one pick
+function lookup(ev, bookmakers, pk){
+  const g0 = analyze(ev, bookmakers)[pk.market] || {}, k = outKey(pk.name, pk.desc, pk.point);
+  for (const line in g0) {
+    const g = g0[line]; if (!g.outcomes[k]) continue;
+    let best = null;
+    for (const b of S.settings.myBooks) { const d = g.books[b]?.[k]; if (d && (!best || d > best.dec)) best = {book:b, dec:d}; }
+    return { fairP: g.fair?.[k] ?? null, price: b => g.books[b]?.[k], best, target: g.books[S.settings.target]?.[k] };
+  }
+  return null;
+}
+
+/* ---------- API ---------- */
+async function api(path, params){
+  const key = S.settings.apiKey;
+  if (!key) throw new Error('Add your Odds API key in Settings first (or try "Load demo data").');
+  const qs = new URLSearchParams({...params, apiKey:key});
+  let r;
+  try { r = await fetch(`${API}${path}?${qs}`); }
+  catch (e) {
+    throw new Error('Your browser blocked the request before it reached the odds service. Usual causes: (1) the page was opened in Safari, which blocks local files from going online — open it in Chrome instead; (2) an ad/tracker blocker or VPN is blocking the-odds-api.com — allow it or turn it off for this page; (3) no internet connection.');
+  }
+  const rem = r.headers.get('x-requests-remaining'), used = r.headers.get('x-requests-used');
+  if (rem != null) { S.quota = {rem:+rem, used:+used}; save(); renderQuota(); }
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.message || ('API error '+r.status));
+  return body;
+}
+async function fetchOdds(sport){
+  const events = await api(`/sports/${sport}/odds`, {regions:'us,eu', markets:S.settings.markets.join(','), oddsFormat:'decimal'});
+  S.cache[sport] = {ts:Date.now(), events};
+  snapshotPicks();
+  save();
+}
+async function fetchProps(ev, markets){
+  const data = await api(`/sports/${ev.sport_key}/events/${ev.id}/odds`, {
+    regions: S.settings.propSharp ? 'us,eu' : 'us', markets: markets.join(','), oddsFormat:'decimal'
+  });
+  S.props[ev.id] = {ts:Date.now(), commence:ev.commence_time, markets, bookmakers:data.bookmakers || []};
+  snapshotPicks();
+  save();
+}
+const propCost = n => n * (S.settings.propSharp ? 2 : 1);
+
+// Save the latest pre-game price & fair value on open picks — this becomes the closing line.
+function snapshotPicks(){
+  for (const pk of [...S.picks, ...S.paper.bets]) {
+    if (pk.result !== 'pending' || !pk.eventId) continue;
+    const c = S.cache[pk.sport], ev = c?.events.find(e => e.id === pk.eventId); if (!ev || c.demo) continue;
+    const src = isProp(pk.market) ? S.props[pk.eventId] : c; if (!src) continue;
+    if (src.ts >= new Date(ev.commence_time).getTime()) continue;
+    const L = lookup(ev, isProp(pk.market) ? src.bookmakers : ev.bookmakers, pk); if (!L) continue;
+    const d = L.price(pk.book) || L.target || L.best?.dec;
+    if (d) pk.closeDec = d;
+    if (L.fairP) pk.closeFair = L.fairP;
+    pk.nowBest = L.best; pk.snapAt = src.ts;
+  }
+}
+async function gradePicks(quiet){
+  const now = Date.now();
+  const due = [...S.picks, ...S.paper.bets].filter(p => p.result==='pending' && p.eventId && !isProp(p.market) && new Date(p.commence).getTime() < now);
+  const sports = [...new Set(due.map(p => p.sport))];
+  if (!sports.length) return quiet ? '' : 'No linked game-line picks with finished games. Props and hand-typed picks are graded with the W / L / P buttons.';
+  let n = 0;
+  for (const sp of sports) {
+    const scores = await api(`/sports/${sp}/scores`, {daysFrom:3});
+    const byId = Object.fromEntries(scores.map(s => [s.id, s]));
+    for (const pk of due) {
+      if (pk.sport !== sp) continue;
+      const s = byId[pk.eventId]; if (!s || !s.completed || !s.scores) continue;
+      const sc = Object.fromEntries(s.scores.map(x => [x.name, +x.score]));
+      const res = gradeOne(pk, sc, s); if (res) { pk.result = res; pk.settledAt = Date.now(); n++; }
+    }
+  }
+  save();
+  return `Graded ${n} pick${n===1?'':'s'}. Games older than 3 days and player props need the W / L / P buttons.`;
+}
+function gradeOne(pk, sc, s){
+  const home = sc[s.home_team], away = sc[s.away_team];
+  if (home == null || away == null) return null;
+  if (pk.market === 'h2h') {
+    if (pk.name === 'Draw') return home === away ? 'W' : 'L';
+    if (home === away) return 'P';
+    return pk.name === (home > away ? s.home_team : s.away_team) ? 'W' : 'L';
+  }
+  if (pk.market === 'spreads') {
+    const mine = sc[pk.name], opp = pk.name === s.home_team ? away : home;
+    if (mine == null) return null;
+    const m = mine + pk.point - opp; return m > 0 ? 'W' : m < 0 ? 'L' : 'P';
+  }
+  if (pk.market === 'totals') {
+    const t = home + away, d = pk.name === 'Over' ? t - pk.point : pk.point - t;
+    return d > 0 ? 'W' : d < 0 ? 'L' : 'P';
+  }
+  return null;
+}
+
+/* ---------- demo data ---------- */
+const DEMO_BOOKS = ['pinnacle','draftkings','fanduel','betmgm','williamhill_us','espnbet','betrivers'];
+const noise = s => (Math.random()-0.5)*s;
+function twoWay(p, book){
+  const vig = book === SHARP ? 1.025 : 1.05, q = Math.min(.95, Math.max(.05, p + (book === SHARP ? 0 : noise(0.09))));
+  return [+(1/(q*vig)).toFixed(3), +(1/((1-q)*vig)).toFixed(3)];
+}
+function demoData(sport){
+  const teams = ['Hawks','Wolves','Bears','Lions','Sharks','Eagles','Tigers','Kings','Rams','Owls','Foxes','Bulls','Jets','Storm','Titans','Comets'];
+  const events = [];
+  for (let i=0;i<8;i++){
+    const home = teams[i*2], away = teams[i*2+1];
+    const pHome = 0.3 + Math.random()*0.4, spread = -Math.round((pHome-0.5)*28)+0.5, total = 40.5 + Math.round(Math.random()*12);
+    const bm = DEMO_BOOKS.map(b => {
+      const [mh, ma] = twoWay(pHome, b), [sh, sa] = twoWay(0.5, b), [ov, un] = twoWay(0.5, b);
+      return {key:b, title:bookName(b), markets:[
+        {key:'h2h', outcomes:[{name:home, price:mh},{name:away, price:ma}]},
+        {key:'spreads', outcomes:[{name:home, price:sh, point:spread},{name:away, price:sa, point:-spread}]},
+        {key:'totals', outcomes:[{name:'Over', price:ov, point:total},{name:'Under', price:un, point:total}]}
+      ].filter(m => S.settings.markets.includes(m.key))};
+    });
+    events.push({id:'demo'+i, sport_key:sport, commence_time:new Date(Date.now()+(i+1)*3.6e6*5).toISOString(), home_team:home, away_team:away, bookmakers:bm});
+  }
+  S.cache[sport] = {ts:Date.now(), events, demo:true};
+  save();
+}
+function demoProps(ev, markets){
+  const first = ['J.','M.','D.','K.','T.','A.','C.','R.'], last = ['Carter','Hayes','Brooks','Reed','Price','Ellis','Grant','Walsh','Moore','Lane'];
+  const players = Array.from({length:6}, (_, i) => `${first[(i*3+ev.id.length)%8]} ${last[(i*7+ev.home_team.length)%10]}`);
+  const base = {player_pass_yds:245.5, player_pass_tds:1.5, player_rush_yds:58.5, player_receptions:4.5, player_reception_yds:52.5,
+    player_points:18.5, player_rebounds:6.5, player_assists:4.5, player_threes:2.5, player_points_rebounds_assists:29.5,
+    pitcher_strikeouts:5.5, batter_hits:0.5, batter_total_bases:1.5, batter_home_runs:0.5, batter_rbis:0.5,
+    player_shots_on_goal:2.5, player_shots_on_target:0.5};
+  const truth = {};
+  const bookmakers = DEMO_BOOKS.map(b => ({key:b, title:bookName(b), markets: markets.map(mk => {
+    const outs = [];
+    players.forEach((pl, i) => {
+      const id = mk+pl; truth[id] ??= 0.35 + Math.random()*0.3;
+      if (base[mk] == null) { // yes/no style
+        const [y, n] = twoWay(truth[id]*0.6, b);
+        outs.push({name:'Yes', description:pl, price:y}, {name:'No', description:pl, price:n});
+      } else {
+        const pt = base[mk] + (i%3)*(base[mk] > 10 ? 10 : 1);
+        const [o, u] = twoWay(truth[id], b);
+        outs.push({name:'Over', description:pl, point:pt, price:o}, {name:'Under', description:pl, point:pt, price:u});
+      }
+    });
+    return {key:mk, outcomes:outs};
+  })}));
+  S.props[ev.id] = {ts:Date.now(), commence:ev.commence_time, markets, bookmakers, demo:true};
+  save();
+}
+
+/* ---------- rendering ---------- */
+const $ = id => document.getElementById(id);
+const when = t => new Date(t).toLocaleString([], {weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+const msg = (el, text, err) => { $(el).innerHTML = text ? `<div class="msg ${err?'err':''}">${text}</div>` : ''; };
+const edgePill = e => e == null ? '<span class="small">no fair line</span>'
+  : `<span class="pill ${e>0?(e>0.08?'warn':'good'):'bad'}" title="${e>0.08?'Unusually large — make sure the line is current before betting':''}">${signPct(e)}${e>0.08?' ⚠':''}</span>`;
+
+function renderQuota(){ $('quota').textContent = S.quota ? `API credits left: ${S.quota.rem}` : ''; }
+
+function sportEvents(){
+  const c = S.cache[S.settings.sport]; if (!c) return [];
+  const q = $('teamSearch').value.trim().toLowerCase();
+  return c.events
+    .filter(ev => c.demo || new Date(ev.commence_time) > Date.now())
+    .filter(ev => !q || (ev.home_team+' '+ev.away_team).toLowerCase().includes(q))
+    .sort((a,b) => a.commence_time.localeCompare(b.commence_time));
+}
+
+function renderGames(){
+  const st = S.settings, c = S.cache[st.sport];
+  msg('gamesMsg', c ? `${c.demo ? '<b>Demo data</b> — fake games for trying the tool. ' : ''}Game lines updated ${esc(when(c.ts))} · ${c.events.length} games` : '');
+  const evs = sportEvents();
+  if (!c) { $('gameList').innerHTML = '<div class="card"><p class="small">No odds loaded for this sport yet. Hit <b>Refresh game lines</b> (or <b>Load demo data</b> to try it out).</p></div>'; $('topCard').classList.add('hidden'); return; }
+  if (!evs.length) { $('gameList').innerHTML = '<div class="card"><p class="small">No upcoming games match.</p></div>'; $('topCard').classList.add('hidden'); return; }
+
+  // top bets across everything loaded
+  const all = [];
+  const perGame = evs.map(ev => {
+    const lines = gameRows(ev), props = propRows(ev);
+    all.push(...lines, ...(props || []));
+    const vals = [...lines, ...(props || [])].filter(isValue);
+    return {ev, lines, props, vals};
+  });
+  const top = all.filter(isValue).sort((a,b) => b.edge - a.edge).slice(0, 10);
+  $('topCard').classList.remove('hidden');
+  $('topBets').innerHTML = top.length ? `<table><thead><tr><th>Game</th><th>Bet</th><th class="n">Price</th><th class="n">Fair</th><th class="n">Edge</th><th class="n">Stake</th><th></th></tr></thead><tbody>
+    ${top.map(r => `<tr><td><a href="#" data-jump="${esc(r.ev.id)}">${esc(r.ev.away_team)} @ ${esc(r.ev.home_team)}</a></td>
+      <td><b>${esc(outLabel(r.mkey, r.o.name, r.o.point, r.o.desc))}</b> ${r.kind==='prop'?'<span class="pill">Prop</span>':''}</td>
+      <td class="n">${fmtDec(r.use.dec)} <span class="small">${esc(bookName(r.use.book))}</span></td>
+      <td class="n">${fmtDec(1/r.p)}</td><td class="n">${edgePill(r.edge)}</td>
+      <td class="n">${money(kellyStake(r.p, r.use.dec))}</td>
+      <td><button class="b s" data-log="${esc(r.id)}">Log</button> <button class="b s" data-paper="${esc(r.id)}">Paper</button></td></tr>`).join('')}</tbody></table>`
+    : `<p class="small">Nothing at ${st.minEdge}%+ edge right now. That's normal — real edges are rare. Open games below to see every line, or load props.</p>`;
+
+  $('gameList').innerHTML = perGame.map(({ev, props, vals}) => {
+    const open = UI.open.has(ev.id), bestE = vals.length ? Math.max(...vals.map(v => v.edge)) : null;
+    return `<div class="gcard ${open?'open':''}" id="g-${esc(ev.id)}">
+      <button class="ghead" data-toggle="${esc(ev.id)}">
+        <span><span class="teams">${esc(ev.away_team)} @ ${esc(ev.home_team)}</span><br><span class="small">${esc(when(ev.commence_time))}</span></span>
+        <span class="meta">
+          ${vals.length ? `<span class="pill good">${vals.length} value bet${vals.length>1?'s':''} · best ${signPct(bestE)}</span>` : '<span class="pill">No value yet</span>'}
+          ${props ? `<span class="pill">Props loaded</span>` : ''}
+          <span class="chev">▾</span>
+        </span>
+      </button>
+      ${open ? `<div class="gbody">${gameBody(ev)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function gameBody(ev){
+  const sub = UI.sub[ev.id] || 'lines', pr = S.props[ev.id];
+  return `<div class="subtabs">
+      <button data-sub="${esc(ev.id)}:lines" class="${sub==='lines'?'on':''}">Game lines</button>
+      <button data-sub="${esc(ev.id)}:props" class="${sub==='props'?'on':''}">Player props${pr ? '' : ' (not loaded)'}</button>
+    </div>
+    ${sub === 'lines' ? linesTable(ev) : propsPanel(ev)}`;
+}
+
+function linesTable(ev){
+  const order = {h2h:0, spreads:1, totals:2};
+  const rows = gameRows(ev).sort((a,b) => order[a.mkey]-order[b.mkey] || (b.edge ?? -9) - (a.edge ?? -9));
+  if (!rows.length) return '<p class="small">No lines at your books for this game.</p>';
+  return `<div class="tw">${oddsTable(rows, false)}</div>`;
+}
+
+function propsPanel(ev){
+  const markets = PROPS[ev.sport_key] || [], pr = S.props[ev.id];
+  if (!markets.length) return '<p class="small">Player props aren\'t available for this sport.</p>';
+  const chosen = S.settings.propMarkets[ev.sport_key] || markets.slice(0,3).map(m => m[0]);
+  const demo = S.cache[ev.sport_key]?.demo;
+  const ctl = `<div class="propctl">
+      <span class="small">Prop types:</span>
+      ${markets.map(([k,l]) => `<label class="inl"><input type="checkbox" data-pm="${ev.sport_key}:${k}" ${chosen.includes(k)?'checked':''}> ${l}</label>`).join('')}
+      <button class="b ${pr?'':'p'} s" data-loadprops="${esc(ev.id)}">${pr ? 'Reload' : 'Load'} props${demo ? ' (demo)' : ` · ~${propCost(chosen.length)} credits`}</button>
+    </div>`;
+  if (!pr) return ctl + '<p class="small">Props are loaded one game at a time to save API credits. Choose prop types, then click Load.</p>';
+  const rows = propRows(ev);
+  const q = (UI.propSearch[ev.id] || '').toLowerCase(), showAll = UI.propAll[ev.id];
+  return ctl + `<div class="propctl">
+      <input placeholder="Search player" data-psearch="${esc(ev.id)}" value="${esc(UI.propSearch[ev.id] || '')}" style="width:180px">
+      <label class="inl"><input type="checkbox" data-pall="${esc(ev.id)}" ${showAll?'checked':''}> Show all props (not just value)</label>
+      <span class="small">Updated ${esc(when(pr.ts))}${pr.demo ? ' · demo' : ''}</span>
+    </div>
+    <div class="tw" id="pt-${esc(ev.id)}">${propTable(rows, q, showAll)}</div>`;
+}
+
+function propTable(rows, q, showAll){
+  let r = rows.filter(x => !q || (x.o.desc || '').toLowerCase().includes(q));
+  const nVal = r.filter(isValue).length;
+  if (!showAll) r = r.filter(isValue);
+  r.sort((a,b) => (b.edge ?? -9) - (a.edge ?? -9));
+  if (!r.length) return `<p class="small">${nVal ? '' : `No props at ${S.settings.minEdge}%+ edge${q ? ' for that search' : ''}. `}Tick "Show all props" to browse every line.</p>`;
+  return oddsTable(r.slice(0, 300), true);
+}
+
+function oddsTable(rows, prop){
+  const st = S.settings;
+  return `<table><thead><tr>
+    ${prop ? '<th>Player</th><th>Prop</th><th>Pick</th>' : '<th>Market</th><th>Pick</th>'}
+    <th class="n">${esc(bookName(st.target))}</th><th class="n">Best of mine</th>
+    <th class="n">Fair</th><th class="n">Win %</th><th class="n">Edge</th><th class="n">Stake</th><th></th></tr></thead><tbody>
+    ${rows.map(r => {
+      const stake = r.p && r.use ? kellyStake(r.p, r.use.dec) : 0;
+      const pick = prop ? `${r.o.name}${r.o.point != null ? ' '+r.o.point : ''}` : outLabel(r.mkey, r.o.name, r.o.point);
+      return `<tr class="${isValue(r)?'val':''}">
+        ${prop ? `<td class="player">${esc(r.o.desc)}</td><td>${esc(mktLabel(r.mkey))}</td>` : `<td>${GAME_MKTS[r.mkey]}</td>`}
+        <td><b>${esc(pick)}</b></td>
+        <td class="n">${fmtDec(r.tgt)}</td>
+        <td class="n">${r.best ? fmtDec(r.best.dec)+' <span class="small">'+esc(bookName(r.best.book))+'</span>' : '—'}</td>
+        <td class="n">${r.p ? fmtDec(1/r.p)+'<div class="small">'+esc(r.src)+'</div>' : '—'}</td>
+        <td class="n">${pct(r.p)}</td>
+        <td class="n">${edgePill(r.edge)}</td>
+        <td class="n">${stake>0 ? money(stake) : '—'}</td>
+        <td>${r.use ? `<button class="b s" data-log="${esc(r.id)}">Log</button> <button class="b s" data-paper="${esc(r.id)}">Paper</button>` : ''}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+/* ----- tailers & my bets ----- */
+function pickStats(list){
+  const graded = list.filter(p => ['W','L','P'].includes(p.result));
+  let w=0,l=0,pu=0,profit=0,risk=0; const clvs=[];
+  for (const p of graded) {
+    const d = amToDec(p.odds);
+    if (p.result==='W'){ w++; profit += p.units*(d-1); } else if (p.result==='L'){ l++; profit -= p.units; } else pu++;
+    if (p.result!=='P') risk += p.units;
+  }
+  for (const p of list) { const c = clvOf(p); if (c != null) clvs.push(c); }
+  return {n:graded.length, w, l, pu, profit, roi: risk ? profit/risk : null,
+    clv: clvs.length ? clvs.reduce((a,b)=>a+b,0)/clvs.length : null,
+    beat: clvs.length ? clvs.filter(x=>x>0).length/clvs.length : null, nClv: clvs.length};
+}
+// CLV only counts once the game has started (the saved price is then the closing one).
+function clvOf(p){
+  const started = p.commence ? Date.now() >= new Date(p.commence).getTime() : p.result !== 'pending';
+  if (!started) return null;
+  const d = amToDec(p.odds);
+  if (p.closeFair) return p.closeFair * d - 1;
+  if (p.closeDec) return d / p.closeDec - 1;
+  return null;
+}
+function verdict(s){
+  if (s.nClv < 25) return `<span class="pill">Need more picks (${s.nClv}/25 w/ CLV)</span>`;
+  if (s.clv > 0.015 && s.beat > 0.52) return '<span class="pill good">Beating the close — tail candidate</span>';
+  if (s.clv > 0) return '<span class="pill warn">Slightly positive</span>';
+  return '<span class="pill bad">Not beating the close</span>';
+}
+const sampleNote = n => n < 50 ? 'too early' : n < 150 ? 'building' : 'meaningful';
+
+function renderTailers(){
+  if (!S.tailers.length) $('board').innerHTML = '<p class="small">Add the handicappers you follow, then log their picks as they post them.</p>';
+  else {
+    const rows = S.tailers.map(n => ({n, s: pickStats(S.picks.filter(p => p.who === n))})).sort((a,b) => (b.s.clv ?? -9) - (a.s.clv ?? -9));
+    $('board').innerHTML = `<table><thead><tr><th>Handicapper</th><th class="n">Graded</th><th class="n">W-L-P</th><th class="n">Units</th><th class="n">ROI</th><th class="n">Avg CLV</th><th class="n">Beat close</th><th>Verdict</th><th></th></tr></thead><tbody>
+      ${rows.map(({n,s}) => `<tr><td><b>${esc(n)}</b></td>
+        <td class="n">${s.n} <span class="small">${sampleNote(s.n)}</span></td>
+        <td class="n">${s.w}-${s.l}-${s.pu}</td>
+        <td class="n ${s.profit>=0?'good':'bad'}">${units(s.profit)}</td>
+        <td class="n">${signPct(s.roi)}</td>
+        <td class="n ${s.clv>0?'good':s.clv<0?'bad':''}">${signPct(s.clv)}</td>
+        <td class="n">${pct(s.beat,0)}</td>
+        <td>${verdict(s)}</td>
+        <td><button class="b s" data-deltailer="${esc(n)}">Remove</button></td></tr>`).join('')}</tbody></table>`;
+  }
+  const open = S.picks.filter(p => p.who !== 'Me' && p.result === 'pending').sort((a,b) => (a.commence||'').localeCompare(b.commence||''));
+  $('openPicks').innerHTML = open.length ? pickTable(open, true) : '<p class="small">No open picks.</p>';
+  const graded = S.picks.filter(p => p.who !== 'Me' && p.result !== 'pending').sort((a,b) => b.createdAt - a.createdAt);
+  $('gradedPicks').innerHTML = graded.length ? pickTable(graded, false) : '<p class="small">Nothing graded yet.</p>';
+}
+
+function pickTable(list, open){
+  return `<table><thead><tr><th>Who</th><th>Game</th><th>Pick</th><th class="n">Their odds</th>
+    ${open ? '<th class="n">Best now</th><th class="n">Edge now</th>' : '<th class="n">Close</th><th class="n">CLV</th>'}
+    <th class="n">Units</th><th>Tailed</th><th>Result</th><th></th></tr></thead><tbody>
+    ${list.map(p => {
+      let a, b;
+      if (open) {
+        const edge = p.nowBest && p.closeFair ? p.closeFair*p.nowBest.dec - 1 : null;
+        a = p.nowBest ? fmtDec(p.nowBest.dec)+' <span class="small">'+esc(bookName(p.nowBest.book))+'</span>' : '<span class="small">'+(p.eventId?'check lines':'not linked')+'</span>';
+        b = edge == null ? '—' : `<span class="pill ${edge>0?'good':'bad'}">${signPct(edge)}</span>`;
+      } else {
+        a = p.closeDec ? fmtDec(p.closeDec) : '—'; const c = clvOf(p);
+        b = c == null ? '—' : `<span class="${c>0?'good':'bad'}">${signPct(c)}</span>`;
+      }
+      return `<tr><td>${esc(p.who)}</td>
+        <td class="game">${esc(p.gameDesc || p.desc)}${p.commence?'<div class="small">'+esc(when(p.commence))+'</div>':''}</td>
+        <td><b>${esc(p.label)}</b> ${isProp(p.market) ? '<span class="pill">Prop</span>' : `<span class="small">${esc(mktLabel(p.market))}</span>`}</td>
+        <td class="n">${fmtAm(p.odds)}</td><td class="n">${a}</td><td class="n">${b}</td>
+        <td class="n">${p.units}</td>
+        <td>${p.who==='Me' ? '—' : `<input type="checkbox" data-tail="${p.id}" ${p.tailed?'checked':''}>`}</td>
+        <td>${resultCell(p)}</td>
+        <td><button class="b s" data-del="${p.id}">✕</button></td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+function resultCell(p){
+  if (p.result !== 'pending') return `<span class="pill ${p.result==='W'?'good':p.result==='L'?'bad':''}">${p.result}</span> <button class="b s" data-res="${p.id}:pending" title="Undo">↺</button>`;
+  return ['W','L','P'].map(r => `<button class="b s" data-res="${p.id}:${r}">${r}</button>`).join(' ');
+}
+
+function renderLog(){
+  const mine = S.picks.filter(p => p.who === 'Me' || p.tailed).sort((a,b) => b.createdAt - a.createdAt);
+  const s = pickStats(mine), u = S.settings.unit;
+  $('myStats').innerHTML = [
+    ['Record', `${s.w}-${s.l}-${s.pu}`], ['Profit', `<span class="${s.profit>=0?'good':'bad'}">${money(s.profit*u)}</span>`],
+    ['Units', units(s.profit)], ['ROI', signPct(s.roi)], ['Avg CLV', signPct(s.clv)], ['Open bets', mine.filter(p=>p.result==='pending').length]
+  ].map(([k,v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  $('myTable').innerHTML = mine.length ? pickTable(mine, false) : '<p class="small">No bets logged yet. Use <b>Log</b> on any line or prop, tick "I tailed" on a tailer pick, or log one here.</p>';
+}
+
+function renderSettings(){
+  const st = S.settings;
+  $('apiKey').value = st.apiKey; $('bankroll').value = st.bankroll; $('unit').value = st.unit; $('kelly').value = st.kelly; $('maxPct').value = st.maxPct;
+  $('propSharp').checked = st.propSharp;
+  $('target').innerHTML = Object.keys(BOOKS).filter(b=>b!==SHARP).map(b => `<option value="${b}" ${b===st.target?'selected':''}>${BOOKS[b]}</option>`).join('');
+  $('myBooks').innerHTML = Object.keys(BOOKS).filter(b=>b!==SHARP).map(b => `<label><input type="checkbox" data-book="${b}" ${st.myBooks.includes(b)?'checked':''}> ${BOOKS[b]}</label>`).join('');
+  document.querySelectorAll('[data-m]').forEach(el => el.checked = st.markets.includes(el.dataset.m));
+}
+
+function render(){ renderQuota(); renderGames(); renderTailers(); renderLog(); renderPaper(); }
+
+/* ---------- log pick dialog ---------- */
+let EVS = [];
+function openPickDialog(opts = {}){
+  $('dlgTitle').textContent = opts.me ? 'Log my bet' : 'Log a pick';
+  const whoOpts = opts.me ? ['Me'] : [...S.tailers, 'Me'];
+  $('pWho').innerHTML = whoOpts.map(n => `<option>${esc(n)}</option>`).join('');
+  $('pTailedWrap').classList.toggle('hidden', !!opts.me);
+  $('pTailed').checked = false;
+  $('pBook').innerHTML = S.settings.myBooks.map(b => `<option value="${b}">${esc(bookName(b))}</option>`).join('');
+  $('pBook').value = S.settings.target;
+  EVS = [];
+  for (const sp in S.cache) for (const ev of S.cache[sp].events) if (S.cache[sp].demo || new Date(ev.commence_time) > Date.now()) EVS.push({sp, ev});
+  EVS.sort((a,b) => a.ev.commence_time.localeCompare(b.ev.commence_time));
+  $('pEvent').innerHTML = '<option value="">— Not listed / type it in —</option>' + EVS.map((x,i) =>
+    `<option value="${i}">${esc(x.ev.away_team)} @ ${esc(x.ev.home_team)} · ${esc(when(x.ev.commence_time))}</option>`).join('');
+  $('pDesc').value = ''; $('pPick').value = ''; $('pOdds').value = ''; $('pUnits').value = 1;
+  if (opts.row) {
+    const r = opts.row, i = EVS.findIndex(x => x.ev.id === r.ev.id);
+    $('pEvent').value = i >= 0 ? String(i) : '';
+    syncMarkets(); $('pMarket').value = r.mkey; syncOutcomes();
+    $('pOutcome').value = outKey(r.o.name, r.o.desc, r.o.point);
+    $('pBook').value = r.use.book;
+    $('pOdds').value = decToAm(r.use.dec);
+    const stake = kellyStake(r.p, r.use.dec);
+    if (stake > 0) $('pUnits').value = Math.max(0.25, Math.round(stake / S.settings.unit * 4) / 4);
+  } else { syncMarkets(); syncOutcomes(); }
+  $('dlg').showModal();
+}
+function dlgBookmakers(){
+  const idx = $('pEvent').value; if (idx === '') return null;
+  const ev = EVS[+idx].ev, m = $('pMarket').value;
+  return isProp(m) ? (S.props[ev.id]?.bookmakers || []) : ev.bookmakers;
+}
+function syncMarkets(){
+  const idx = $('pEvent').value, linked = idx !== '';
+  document.querySelectorAll('.linkOn').forEach(e => e.classList.toggle('hidden', !linked));
+  document.querySelectorAll('.linkOff').forEach(e => e.classList.toggle('hidden', linked));
+  let opts = Object.entries(GAME_MKTS);
+  if (linked) {
+    const ev = EVS[+idx].ev, pm = S.props[ev.id]?.markets || [];
+    opts = opts.concat(pm.map(k => [k, 'Prop: '+mktLabel(k)]));
+  } else opts = opts.concat([['other','Player prop / other']]);
+  $('pMarket').innerHTML = opts.map(([k,l]) => `<option value="${k}">${esc(l)}</option>`).join('');
+}
+function syncOutcomes(){
+  const bms = dlgBookmakers(); if (!bms) return;
+  const ev = EVS[+$('pEvent').value].ev, mkey = $('pMarket').value, seen = new Map();
+  for (const bk of bms) for (const m of bk.markets) if (m.key === mkey) for (const o of m.outcomes) {
+    const k = outKey(o.name, o.description, o.point); if (!seen.has(k)) seen.set(k, outLabel(mkey, o.name, o.point, o.description));
+  }
+  const list = [...seen].sort((a,b) => a[1].localeCompare(b[1]));
+  $('pOutcome').innerHTML = list.map(([k,l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('') || '<option value="">No lines for this market</option>';
+  fillOdds();
+}
+function fillOdds(){
+  const bms = dlgBookmakers(); if (!bms || !$('pOutcome').value) return;
+  const bk = bms.find(b => b.key === $('pBook').value), k = $('pOutcome').value;
+  const o = bk?.markets.find(m => m.key === $('pMarket').value)?.outcomes.find(o => outKey(o.name, o.description, o.point) === k);
+  if (o) $('pOdds').value = decToAm(o.price);
+}
+function savePick(){
+  const odds = parseInt($('pOdds').value, 10);
+  if (!odds || Math.abs(odds) < 100) { alert('Enter American odds like -110 or +150.'); return false; }
+  const idx = $('pEvent').value, who = $('pWho').value;
+  const pk = {id:uid(), who, createdAt:Date.now(), market:$('pMarket').value, odds, units:+$('pUnits').value || 1,
+    book:$('pBook').value, tailed: who !== 'Me' && $('pTailed').checked, result:'pending'};
+  if (idx !== '') {
+    const {sp, ev} = EVS[+idx], k = $('pOutcome').value;
+    if (!k) { alert('Pick a selection.'); return false; }
+    const bms = dlgBookmakers();
+    let o = null;
+    for (const bk of bms) for (const m of bk.markets) if (m.key === pk.market) o ||= m.outcomes.find(x => outKey(x.name, x.description, x.point) === k);
+    if (!o) { alert('Selection not found.'); return false; }
+    Object.assign(pk, {sport:sp, eventId: S.cache[sp].demo ? null : ev.id, commence:ev.commence_time,
+      name:o.name, desc:o.description ?? null, point:o.point ?? null,
+      gameDesc:`${ev.away_team} @ ${ev.home_team}`, label: outLabel(pk.market, o.name, o.point, o.description)});
+    const L = lookup(ev, bms, pk);
+    if (L) { pk.closeDec = L.price(pk.book) || L.target; pk.closeFair = L.fairP; pk.nowBest = L.best; }
+  } else {
+    if (!$('pPick').value.trim()) { alert('Describe the pick.'); return false; }
+    Object.assign(pk, {gameDesc:$('pDesc').value.trim() || '—', label:$('pPick').value.trim()});
+  }
+  S.picks.push(pk); save(); render();
+  return true;
+}
+
+/* ---------- events ---------- */
+$('tabs').addEventListener('click', e => {
+  const t = e.target.dataset.t; if (!t) return;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hidden', s.id !== 't-'+t));
+  store.set('tab', t);
+});
+
+$('sport').innerHTML = SPORTS.map(([k,n]) => `<option value="${k}">${n}</option>`).join('');
+$('sport').value = S.settings.sport; $('priceFrom').value = S.settings.priceFrom; $('minEdge').value = S.settings.minEdge;
+['sport','priceFrom'].forEach(id => $(id).onchange = () => { S.settings[id] = $(id).value; save(); renderGames(); });
+$('minEdge').oninput = () => { S.settings.minEdge = +$('minEdge').value || 0; save(); renderGames(); };
+$('teamSearch').oninput = renderGames;
+
+$('refresh').onclick = async () => {
+  $('refresh').disabled = true; msg('gamesMsg', 'Loading odds…');
+  try { await fetchOdds(S.settings.sport); render(); }
+  catch (e) { msg('gamesMsg', esc(e.message), true); }
+  $('refresh').disabled = false;
+};
+$('demo').onclick = () => { demoData(S.settings.sport); UI.open.clear(); renderGames(); };
+
+$('gameList').addEventListener('click', async e => {
+  const t = e.target.closest('[data-toggle],[data-sub],[data-loadprops]'); if (!t) return;
+  const d = t.dataset;
+  if (d.toggle) { UI.open.has(d.toggle) ? UI.open.delete(d.toggle) : UI.open.add(d.toggle); renderGames(); }
+  if (d.sub) { const [id, s] = d.sub.split(':'); UI.sub[id] = s; renderGames(); }
+  if (d.loadprops) {
+    const ev = S.cache[S.settings.sport].events.find(x => x.id === d.loadprops);
+    const chosen = S.settings.propMarkets[ev.sport_key] || (PROPS[ev.sport_key] || []).slice(0,3).map(m => m[0]);
+    if (!chosen.length) { alert('Tick at least one prop type.'); return; }
+    t.disabled = true; t.textContent = 'Loading…';
+    try {
+      if (S.cache[ev.sport_key].demo) demoProps(ev, chosen); else await fetchProps(ev, chosen);
+      renderGames();
+    } catch (err) { t.disabled = false; t.textContent = 'Load props'; alert(err.message); }
+  }
+});
+$('gameList').addEventListener('change', e => {
+  const d = e.target.dataset;
+  if (d.pm) {
+    const [sp, k] = d.pm.split(':');
+    const cur = S.settings.propMarkets[sp] || (PROPS[sp] || []).slice(0,3).map(m => m[0]);
+    S.settings.propMarkets[sp] = e.target.checked ? [...new Set([...cur, k])] : cur.filter(x => x !== k);
+    save(); renderGames();
+  }
+  if (d.pall) { UI.propAll[d.pall] = e.target.checked; renderGames(); }
+});
+$('gameList').addEventListener('input', e => {
+  const id = e.target.dataset.psearch; if (!id) return;
+  UI.propSearch[id] = e.target.value;
+  const ev = S.cache[S.settings.sport].events.find(x => x.id === id);
+  $('pt-'+id).innerHTML = propTable(propRows(ev), e.target.value.toLowerCase(), UI.propAll[id]);
+});
+$('topBets').addEventListener('click', e => {
+  const id = e.target.dataset.jump; if (!id) return;
+  e.preventDefault(); UI.open.add(id);
+  const r = Object.values(ROWS).find(x => x.ev.id === id && x.id === e.target.closest('tr').querySelector('[data-log]')?.dataset.log);
+  if (r) UI.sub[id] = r.kind === 'prop' ? 'props' : 'lines';
+  renderGames(); document.getElementById('g-'+id)?.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+$('addTailer').onclick = () => {
+  const n = $('newTailer').value.trim(); if (!n || n === 'Me') return;
+  if (!S.tailers.includes(n)) S.tailers.push(n);
+  $('newTailer').value = ''; save(); renderTailers();
+};
+$('newTailer').onkeydown = e => { if (e.key === 'Enter') $('addTailer').click(); };
+$('logTailPick').onclick = () => { if (!S.tailers.length) { alert('Add a handicapper first.'); return; } openPickDialog({}); };
+$('logMyBet').onclick = () => openPickDialog({me:true});
+$('checkLines').onclick = async () => {
+  const open = S.picks.filter(p => p.result==='pending' && p.eventId && new Date(p.commence) > Date.now());
+  const sports = [...new Set(open.filter(p => !isProp(p.market)).map(p => p.sport))];
+  const propEvents = {};
+  for (const p of open.filter(p => isProp(p.market))) (propEvents[p.eventId] ||= new Set()).add(p.market);
+  if (!sports.length && !Object.keys(propEvents).length) { msg('tailMsg', 'No open linked picks on upcoming games.'); return; }
+  msg('tailMsg', 'Checking lines…');
+  try {
+    for (const sp of sports) await fetchOdds(sp);
+    for (const id in propEvents) {
+      const p = open.find(x => x.eventId === id), ev = S.cache[p.sport]?.events.find(e => e.id === id);
+      if (ev) await fetchProps(ev, [...new Set([...(S.props[id]?.markets || []), ...propEvents[id]])]);
+    }
+    msg('tailMsg', 'Lines updated.'); render();
+  } catch (e) { msg('tailMsg', esc(e.message), true); }
+};
+$('grade').onclick = async () => {
+  msg('tailMsg', 'Grading…');
+  try { msg('tailMsg', esc(await gradePicks())); render(); } catch (e) { msg('tailMsg', esc(e.message), true); }
+};
+
+document.body.addEventListener('click', e => {
+  const d = e.target.dataset;
+  if (d.log) { const r = ROWS[d.log]; if (r) openPickDialog({me:true, row:r}); }
+  if (d.res) { const [id, r] = d.res.split(':'); const p = S.picks.find(p => p.id === id); if (p) { p.result = r; save(); render(); } }
+  if (d.pres) { const [id, r] = d.pres.split(':'); const b = S.paper.bets.find(b => b.id === id); if (b) { b.result = r; b.settledAt = r === 'pending' ? null : Date.now(); save(); renderPaper(); } }
+  if (d.pdel && confirm('Delete this paper bet?')) { S.paper.bets = S.paper.bets.filter(b => b.id !== d.pdel); save(); renderPaper(); }
+  if (d.paper) {
+    const r = ROWS[d.paper]; if (!r || !r.use) return;
+    const def = r.p ? Math.max(1, Math.floor(kellyStake(r.p, r.use.dec, paperEquity())*2)/2) : 5;
+    const amt = parseFloat(prompt(`Paper bet: ${outLabel(r.mkey, r.o.name, r.o.point, r.o.desc)} at ${fmtDec(r.use.dec)} (${bookName(r.use.book)}).\nAvailable: ${money(paperAvailable())}. Stake ($):`, def));
+    if (!(amt > 0)) return;
+    if (amt > paperAvailable()) { alert('Not enough paper balance available.'); return; }
+    placePaper(r, amt, false); renderPaper(); alert('Paper bet placed. See the Paper account tab.');
+  }
+  if (d.del && confirm('Delete this pick?')) { S.picks = S.picks.filter(p => p.id !== d.del); save(); render(); }
+  if (d.deltailer && confirm(`Remove ${d.deltailer}? Their picks stay in your history.`)) { S.tailers = S.tailers.filter(n => n !== d.deltailer); save(); render(); }
+});
+document.body.addEventListener('change', e => {
+  const id = e.target.dataset.tail;
+  if (id) { const p = S.picks.find(p => p.id === id); if (p) { p.tailed = e.target.checked; save(); render(); } }
+});
+
+$('pEvent').onchange = () => { syncMarkets(); syncOutcomes(); };
+$('pMarket').onchange = syncOutcomes; $('pOutcome').onchange = fillOdds; $('pBook').onchange = fillOdds;
+$('pickForm').addEventListener('submit', e => { if (e.submitter?.value === 'ok' && !savePick()) e.preventDefault(); });
+
+// settings
+$('saveKey').onclick = () => { S.settings.apiKey = $('apiKey').value.trim(); save(); $('saveKey').textContent = 'Saved ✓'; setTimeout(() => $('saveKey').textContent = 'Save key', 1500); };
+['bankroll','unit','kelly','maxPct'].forEach(id => $(id).oninput = () => { S.settings[id] = +$(id).value || 0; save(); renderGames(); renderLog(); });
+$('propSharp').onchange = () => { S.settings.propSharp = $('propSharp').checked; save(); renderGames(); };
+$('target').onchange = () => { S.settings.target = $('target').value; if (!S.settings.myBooks.includes(S.settings.target)) S.settings.myBooks.push(S.settings.target); save(); renderSettings(); render(); };
+$('myBooks').onchange = e => { const b = e.target.dataset.book; if (!b) return;
+  S.settings.myBooks = e.target.checked ? [...S.settings.myBooks, b] : S.settings.myBooks.filter(x => x !== b); save(); render(); };
+document.querySelectorAll('[data-m]').forEach(el => el.onchange = () => {
+  S.settings.markets = [...document.querySelectorAll('[data-m]:checked')].map(x => x.dataset.m);
+  if (!S.settings.markets.length) { S.settings.markets = ['h2h']; renderSettings(); }
+  save();
+});
+$('export').onclick = () => {
+  const data = {tailers:S.tailers, picks:S.picks, settings:{...S.settings, apiKey:''}};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}));
+  a.download = `edge-finder-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+};
+$('import').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.picks)) throw new Error('bad file');
+    if (confirm(`Replace current data with ${d.picks.length} picks from backup?`)) {
+      S.picks = d.picks; S.tailers = d.tailers || []; Object.assign(S.settings, d.settings || {}, {apiKey:S.settings.apiKey});
+      save(); renderSettings(); render();
+    }
+  } catch (err) { alert('Could not read that backup file.'); }
+  e.target.value = '';
+};
+
+/* ---------- paper account ---------- */
+const sportName = k => SPORTS.find(s => s[0] === k)?.[1] || k;
+const paperPL = b => b.result === 'W' ? b.stake*(b.dec-1) : b.result === 'L' ? -b.stake : 0;
+const paperEquity = () => S.paper.start + S.paper.bets.reduce((a,b) => a + paperPL(b), 0);
+const paperAvailable = () => paperEquity() - S.paper.bets.filter(b => b.result === 'pending').reduce((a,b) => a + b.stake, 0);
+
+function placePaper(r, stake, auto){
+  S.paper.bets.push({id:uid(), placedAt:Date.now(), auto, evKey:r.ev.id,
+    sport:r.ev.sport_key, eventId: S.cache[r.ev.sport_key]?.demo ? null : r.ev.id, commence:r.ev.commence_time,
+    gameDesc:`${r.ev.away_team} @ ${r.ev.home_team}`, market:r.mkey, name:r.o.name, desc:r.o.desc ?? null, point:r.o.point ?? null,
+    label:outLabel(r.mkey, r.o.name, r.o.point, r.o.desc), book:r.use.book, dec:r.use.dec, odds:decToAm(r.use.dec),
+    stake:Math.round(stake*100)/100, fairP:r.p, edge:r.edge, closeDec:r.use.dec, closeFair:r.p, result:'pending'});
+  save();
+}
+
+// One bet per game max: the biggest edge that passes the autopilot rules.
+function placeAuto(sp){
+  const c = S.cache[sp]; if (!c) return 0;
+  const ap = S.ap, now = Date.now(), eq = paperEquity();
+  let risked = S.paper.bets.filter(b => b.auto && b.placedAt > now - 864e5).reduce((a,b) => a + b.stake, 0), n = 0;
+  for (const ev of [...c.events].sort((a,b) => a.commence_time.localeCompare(b.commence_time))) {
+    const t = new Date(ev.commence_time).getTime();
+    if (!c.demo && (t < now + 15*6e4 || t > now + ap.ahead*36e5)) continue;
+    if (S.paper.bets.some(b => b.evKey === ev.id)) continue;
+    const cands = gameRows(ev).filter(r => r.edge != null && r.use && r.edge*100 >= ap.min && r.edge*100 <= ap.max && (!ap.sharp || r.src === 'Pinnacle'));
+    if (!cands.length) continue;
+    const r = cands.sort((a,b) => b.edge - a.edge)[0];
+    const stake = Math.floor(kellyStake(r.p, r.use.dec, eq)*2)/2;
+    if (stake < 1) continue;
+    if (risked + stake > eq*ap.daily/100 || stake > paperAvailable()) break;
+    placePaper(r, stake, true); risked += stake; n++;
+  }
+  return n;
+}
+
+let apRunning = false;
+async function runAutopilot(manual){
+  if (apRunning) return; apRunning = true;
+  $('apRun').disabled = true; $('apRun').textContent = 'Running…';
+  const parts = [];
+  for (const sp of S.ap.sports) {
+    try {
+      if (!(manual && S.cache[sp]?.demo)) await fetchOdds(sp);
+      const n = placeAuto(sp);
+      parts.push(`${sportName(sp)}${S.cache[sp]?.demo ? ' (demo)' : ''}: ${n} bet${n===1?'':'s'} placed`);
+    } catch (e) { parts.push(`${sportName(sp)}: ${e.message}`); }
+  }
+  try { const g = await gradePicks(true); if (g) parts.push(g); } catch (e) { parts.push('Grading: ' + e.message); }
+  S.ap.lastRun = Date.now();
+  S.ap.log.unshift({t:Date.now(), text:parts.join(' · ') || 'No sports selected.'}); S.ap.log = S.ap.log.slice(0, 40);
+  save(); render();
+  apRunning = false; $('apRun').disabled = false; $('apRun').textContent = 'Run now';
+}
+
+function paperSummary(bets){
+  const settled = bets.filter(b => b.result !== 'pending');
+  const w = settled.filter(b => b.result === 'W').length, l = settled.filter(b => b.result === 'L').length, pu = settled.length - w - l;
+  const profit = settled.reduce((a,b) => a + paperPL(b), 0), risk = settled.filter(b => b.result !== 'P').reduce((a,b) => a + b.stake, 0);
+  const clvs = bets.map(clvOf).filter(x => x != null);
+  return {n:bets.length, w, l, pu, profit, roi: risk ? profit/risk : null, win: w+l ? w/(w+l) : null,
+    clv: clvs.length ? clvs.reduce((a,b)=>a+b,0)/clvs.length : null, open: bets.length - settled.length,
+    avgEdge: bets.length ? bets.reduce((a,b) => a + (b.edge||0), 0)/bets.length : null};
+}
+
+function renderPaper(){
+  const P = S.paper, eq = paperEquity(), all = paperSummary(P.bets);
+  $('paperStart').value = P.start;
+  $('paperStats').innerHTML = [
+    ['Balance', money(eq)], ['Available', money(paperAvailable())],
+    ['Profit', `<span class="${all.profit>=0?'good':'bad'}">${all.profit>=0?'+':''}${money(all.profit)}</span>`],
+    ['Win rate', pct(all.win, 0)], ['Record', `${all.w}-${all.l}-${all.pu}`], ['ROI', signPct(all.roi)],
+    ['Avg CLV', signPct(all.clv)], ['Open bets', all.open]
+  ].map(([k,v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+
+  const wk = paperSummary(P.bets.filter(b => b.placedAt > Date.now() - 7*864e5));
+  const days = Math.max(0, (Date.now() - P.startedAt)/864e5);
+  $('paperWeek').innerHTML = `<div class="msg"><b>Last 7 days:</b> ${wk.n} bets · ${wk.w}-${wk.l}-${wk.pu} · win rate ${pct(wk.win,0)} · profit ${wk.profit>=0?'+':''}${money(wk.profit)} · ROI ${signPct(wk.roi)} · avg edge at bet ${signPct(wk.avgEdge)}
+    <span class="small"> — account started ${esc(when(P.startedAt))} (${days.toFixed(1)} days ago)</span></div>`;
+
+  // balance-over-time chart
+  const pts = [[P.startedAt, P.start]]; let bal = P.start;
+  for (const b of P.bets.filter(b => b.result !== 'pending').sort((a,b) => (a.settledAt||a.placedAt) - (b.settledAt||b.placedAt))) { bal += paperPL(b); pts.push([b.settledAt || b.placedAt, bal]); }
+  if (pts.length < 2) $('paperChart').innerHTML = '<p class="small" style="margin-top:10px">The balance chart appears after the first bet settles.</p>';
+  else {
+    const W = 600, H = 120, xs = pts.map((_, i) => i), ys = pts.map(p => p[1]);
+    const lo = Math.min(...ys, P.start), hi = Math.max(...ys, P.start), span = hi - lo || 1;
+    const X = i => 4 + i/(xs.length-1)*(W-8), Y = v => H - 6 - (v-lo)/span*(H-12);
+    const up = bal >= P.start;
+    $('paperChart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:130px;margin-top:10px" preserveAspectRatio="none" role="img" aria-label="Paper balance over time">
+      <line x1="0" x2="${W}" y1="${Y(P.start)}" y2="${Y(P.start)}" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <polyline fill="none" stroke="${up?'var(--good)':'var(--bad)'}" stroke-width="2" vector-effect="non-scaling-stroke" points="${pts.map((p,i) => X(i)+','+Y(p[1])).join(' ')}"/>
+    </svg><div class="small">Balance after each settled bet · dashed line = starting balance ${money(P.start)} · low ${money(lo)} · high ${money(hi)}</div>`;
+  }
+
+  // autopilot controls
+  const ap = S.ap;
+  $('apOn').checked = ap.on; $('apEvery').value = ap.every; $('apMin').value = ap.min; $('apMax').value = ap.max; $('apAhead').value = ap.ahead; $('apDaily').value = ap.daily; $('apSharp').checked = ap.sharp;
+  $('apSports').innerHTML = SPORTS.map(([k,n]) => `<label><input type="checkbox" data-aps="${k}" ${ap.sports.includes(k)?'checked':''}> ${n}</label>`).join('');
+  const perRun = ap.sports.length * S.settings.markets.length * 2, perWeek = Math.ceil(perRun * 24/Math.max(1, ap.every) * 7);
+  $('apCost').innerHTML = `Uses about ${perRun} API credits per check (plus 2 per sport when grading) → roughly <b>${perWeek} credits per week</b>${perWeek > 450 ? ' — <span class="bad">more than the free plan allows; check less often or watch fewer sports</span>' : ''}.`;
+  $('apNext').textContent = ap.on ? (ap.lastRun ? `Last run ${when(ap.lastRun)} · next ≈ ${when(ap.lastRun + ap.every*36e5)}` : 'Runs within a minute') : '';
+  $('apLog').innerHTML = ap.log.length ? ap.log.map(x => `<div class="small">${esc(when(x.t))} — ${esc(x.text)}</div>`).join('') : '<p class="small">No runs yet.</p>';
+
+  const bets = [...P.bets].sort((a,b) => b.placedAt - a.placedAt);
+  $('paperTable').innerHTML = bets.length ? `<table><thead><tr><th>Placed</th><th>Game</th><th>Bet</th><th class="n">Odds</th><th class="n">Stake</th><th class="n">Edge at bet</th><th class="n">CLV</th><th>Result</th><th class="n">P/L</th><th></th></tr></thead><tbody>
+    ${bets.map(b => { const c = clvOf(b), pl = paperPL(b); return `<tr>
+      <td>${esc(when(b.placedAt))}<div class="small">${b.auto ? 'Autopilot' : 'Manual'}</div></td>
+      <td class="game">${esc(b.gameDesc)}<div class="small">${esc(when(b.commence))}</div></td>
+      <td><b>${esc(b.label)}</b></td>
+      <td class="n">${fmtAm(b.odds)} <span class="small">${esc(bookName(b.book))}</span></td>
+      <td class="n">${money(b.stake)}</td>
+      <td class="n">${signPct(b.edge)}</td>
+      <td class="n">${c == null ? '—' : `<span class="${c>0?'good':'bad'}">${signPct(c)}</span>`}</td>
+      <td>${b.result !== 'pending' ? `<span class="pill ${b.result==='W'?'good':b.result==='L'?'bad':''}">${b.result}</span> <button class="b s" data-pres="${b.id}:pending" title="Undo">↺</button>`
+          : ['W','L','P'].map(r => `<button class="b s" data-pres="${b.id}:${r}">${r}</button>`).join(' ')}</td>
+      <td class="n ${pl>0?'good':pl<0?'bad':''}">${b.result==='pending' ? '—' : (pl>=0?'+':'')+money(pl)}</td>
+      <td><button class="b s" data-pdel="${b.id}">✕</button></td></tr>`; }).join('')}</tbody></table>
+    <p class="small" style="margin-top:8px">Game-line bets are graded automatically (Grade runs with each autopilot check). Props and older games use the W / L / P buttons.</p>`
+    : '<p class="small">No paper bets yet. Turn on autopilot, or click <b>Paper</b> next to any line on the Games tab.</p>';
+}
+
+$('paperStart').onchange = () => { const v = +$('paperStart').value; if (v > 0) { S.paper.start = v; save(); renderPaper(); } };
+$('paperReset').onclick = () => {
+  if (!confirm('Reset the paper account? This deletes all paper bets.')) return;
+  S.paper = {start: +$('paperStart').value || 300, startedAt: Date.now(), bets: []}; S.ap.log = []; save(); renderPaper();
+};
+$('apOn').onchange = () => { S.ap.on = $('apOn').checked; save(); renderPaper(); };
+$('apRun').onclick = () => runAutopilot(true);
+[['apEvery','every'],['apMin','min'],['apMax','max'],['apAhead','ahead'],['apDaily','daily']].forEach(([id,k]) =>
+  $(id).onchange = () => { const v = +$(id).value; if (v > 0) S.ap[k] = v; save(); renderPaper(); });
+$('apSharp').onchange = () => { S.ap.sharp = $('apSharp').checked; save(); };
+$('apSports').onchange = e => { const k = e.target.dataset.aps; if (!k) return;
+  S.ap.sports = e.target.checked ? [...new Set([...S.ap.sports, k])] : S.ap.sports.filter(x => x !== k); save(); renderPaper(); };
+setInterval(() => { if (S.ap.on && Date.now() - S.ap.lastRun >= S.ap.every*36e5) runAutopilot(false); }, 60000);
+
+/* ---------- init ---------- */
+renderSettings(); render();
+document.querySelector(`#tabs [data-t="${store.get('tab', 'games')}"]`)?.click();
+setInterval(renderTailers, 60000);
+</script>
+</body>
+</html>
